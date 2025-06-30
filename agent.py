@@ -17,8 +17,8 @@ class ValueEstimator(torch.nn.Module):
     def __init__(self, state_space):
         super().__init__()
         self.state_space = state_space
-        self.hidden = 64
-        self.relu = torch.nn.Tanh()
+        self.hidden = 32
+        self.relu = torch.nn.ReLU()
 
         self.fc1 = torch.nn.Linear(state_space, self.hidden)
         self.fc2 = torch.nn.Linear(self.hidden, self.hidden)
@@ -31,7 +31,7 @@ class ValueEstimator(torch.nn.Module):
     def init_weights(self):
         for m in self.modules():
             if type(m) is torch.nn.Linear:
-                torch.nn.init.normal_(m.weight)
+                torch.nn.init.kaiming_normal_(m.weight)
                 torch.nn.init.zeros_(m.bias)
 
 
@@ -48,7 +48,7 @@ class Policy(torch.nn.Module):
         self.state_space = state_space
         self.action_space = action_space
         self.hidden = 64
-        self.relu = torch.nn.Tanh()
+        self.relu = torch.nn.ReLU()
 
         """
             Actor network
@@ -75,7 +75,7 @@ class Policy(torch.nn.Module):
     def init_weights(self):
         for m in self.modules():
             if type(m) is torch.nn.Linear:
-                torch.nn.init.normal_(m.weight)
+                torch.nn.init.kaiming_normal_(m.weight)
                 torch.nn.init.zeros_(m.bias)
 
 
