@@ -38,8 +38,14 @@ def main():
 	action_space_dim = env.action_space.shape[-1]
 
 	policy = Policy(observation_space_dim, action_space_dim)
-	value_function = None
-	agent = Agent(policy, value_function, device=args.device)
+	
+	value_function = ValueEstimator(observation_space_dim)
+	
+	critic = False
+	if critic:
+		assert isinstance(value_function, ValueEstimator)
+	
+	agent = Agent(policy, value_function, critic, device=args.device)
 
     #
     # TASK 2 and 3: interleave data collection to policy updates
@@ -61,7 +67,11 @@ def main():
 
 			train_reward += reward
 
-		agent.update_policy()
+			if critic:
+				agent.update_policy()
+
+		if not critic:
+			agent.update_policy()
 		
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)

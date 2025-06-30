@@ -17,8 +17,8 @@ class ValueEstimator(torch.nn.Module):
     def __init__(self, state_space):
         super().__init__()
         self.state_space = state_space
-        self.hidden = 32
-        self.relu = torch.nn.ReLU()
+        self.hidden = 64
+        self.relu = torch.nn.Tanh()
 
         self.fc1 = torch.nn.Linear(state_space, self.hidden)
         self.fc2 = torch.nn.Linear(self.hidden, self.hidden)
@@ -48,7 +48,7 @@ class Policy(torch.nn.Module):
         self.state_space = state_space
         self.action_space = action_space
         self.hidden = 64
-        self.relu = torch.nn.ReLU()
+        self.relu = torch.nn.Tanh()
 
         """
             Actor network
@@ -117,6 +117,7 @@ class Agent(object):
             self.value_function = None
 
         self.critic = critic
+        self.I = 1 if critic else None
 
         self.gamma = 0.99
         self.states = []
@@ -125,51 +126,75 @@ class Agent(object):
         self.rewards = []
         self.done = []
 
+        self.state = None
+        self.next_state = None
+        self.action_log_prob = None
+        self.reward = None
+
 
     def update_policy(self):
-        action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
-        states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
-        next_states = torch.stack(self.next_states, dim=0).to(self.train_device).squeeze(-1)
-        rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
-        done = torch.Tensor(self.done).to(self.train_device)
+        if not self.critic:
+            action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
+            states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
+            next_states = torch.stack(self.next_states, dim=0).to(self.train_device).squeeze(-1)
+            rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
+            done = torch.Tensor(self.done).to(self.train_device)
+            done = done[-1]
 
-        self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
+            self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
-        # print(f"Action Log Probs: {action_log_probs.shape}")
-        # print(f"States: {states.shape}")
-        # print(f"Next States: {next_states.shape}")
-        # print(f"Rewards: {rewards.shape}")
+            #
+            # TASK 2:
+            #   - compute discounted returns
+            discounted_returns = discount_rewards(rewards, self.gamma)
 
-        #
-        # TASK 2:
-        #   - compute discounted returns
-        discounted_returns = discount_rewards(rewards, self.gamma)
+            #   - compute policy gradient loss function given actions and returns
+            T = discounted_returns.shape[-1]
+            discount_vector = torch.tensor([self.gamma ** t for t in range(T)], device=self.train_device)
+            if self.value_function:
+                baseline = self.value_function(states)
+            else:
+                baseline = 20
+            
+            delta = (discounted_returns - baseline).detach()
+            policy_gradient_loss = -1 * torch.sum(discount_vector * delta * action_log_probs)
+            
+            if self.value_function:
+                value_estimator_loss = -1 * torch.sum(delta * baseline)
 
-        #   - compute policy gradient loss function given actions and returns
-        T = discounted_returns.shape[-1]
-        discount_vector = torch.tensor([self.gamma ** t for t in range(T)], device=self.train_device)
-        if self.value_function:
-            baseline = self.value_function(states)
-        else:
-            baseline = 20
-        
-        delta = (discounted_returns - baseline).detach()
-        policy_gradient_loss = -1 * torch.sum(discount_vector * delta * action_log_probs)
-        
-        if self.value_function:
-            value_estimator_loss = -1 * torch.sum(delta * baseline)
+            #   - compute gradients and step the optimizer
+            #
+            self.optimizer.zero_grad()
+            policy_gradient_loss.backward()
+            self.optimizer.step()
 
-        #   - compute gradients and step the optimizer
-        #
-        self.optimizer.zero_grad()
-        policy_gradient_loss.backward()
-        self.optimizer.step()
+            if self.value_function:
+                self.value_function_optimizer.zero_grad()
+                value_estimator_loss.backward()
+                self.value_function_optimizer.step()
+        else:            
+            past_state_value = self.value_function(self.state)
+            next_state_value = 0 if self.done else self.value_function(self.next_state)
 
-        if self.value_function:
+            
+            delta = (self.reward + self.gamma * next_state_value - past_state_value).detach()
+            
+            value_estimator_loss = -1 * delta * past_state_value
+
+            policy_gradient_loss = -1 * self.I * delta * self.action_log_prob
+
+            self.I = self.I * self.gamma
+
+            self.optimizer.zero_grad()
+            policy_gradient_loss.backward()
+            self.optimizer.step()
+
             self.value_function_optimizer.zero_grad()
             value_estimator_loss.backward()
             self.value_function_optimizer.step()
-        
+
+            if self.done:
+                self.I = 1
 
         #
         # TASK 3:
@@ -179,7 +204,7 @@ class Agent(object):
         #   - compute gradients and step the optimizer
         #
 
-        return        
+        return
 
 
     def get_action(self, state, evaluation=False):
@@ -201,9 +226,15 @@ class Agent(object):
 
 
     def store_outcome(self, state, next_state, action_log_prob, reward, done):
-        self.states.append(torch.from_numpy(state).float())
-        self.next_states.append(torch.from_numpy(next_state).float())
-        self.action_log_probs.append(action_log_prob)
-        self.rewards.append(torch.Tensor([reward]))
-        self.done.append(done)
-
+        if not self.critic:
+            self.states.append(torch.from_numpy(state).float())
+            self.next_states.append(torch.from_numpy(next_state).float())
+            self.action_log_probs.append(action_log_prob.unsqueeze(0))
+            self.rewards.append(torch.Tensor([reward]))
+            self.done.append(done)
+        else:
+            self.state = torch.from_numpy(state).float().to(self.train_device)
+            self.next_state = torch.from_numpy(next_state).float().to(self.train_device)
+            self.action_log_prob = action_log_prob.to(self.train_device)
+            self.reward = reward
+            self.done = done
