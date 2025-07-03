@@ -8,7 +8,6 @@ import argparse
 import os
 import gym
 from env.custom_hopper import *
-import torch
 
 import matplotlib.pyplot as plt
 
@@ -23,8 +22,6 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
 from stable_baselines3.common.callbacks import BaseCallback
-
-from stable_baselines3.common.evaluation import evaluate_policy
 
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
@@ -149,31 +146,16 @@ def main():
     timesteps = args.timesteps
 
     # Create instance of the callback that saves the best model
-    callback = SaveOnBestTrainingRewardCallback(check_freq=args.check_freq, skip_over=args.skip_over, log_dir=run_dir)
+    callback = SaveOnBestTrainingRewardCallback(check_freq=args.check_freq, skip_over=(args.skip_over // n_envs), log_dir=run_dir)
 
     # model = PPO(env=vec_env, **hyperparams)
     model = PPO(policy="MlpPolicy", env=train_env, verbose=1, device=args.device)
     model.learn(total_timesteps=timesteps, progress_bar=True, callback=callback)
 
-    # del model # remove to demonstrate saving and loading
-
-    # model = PPO.load(os.path.join(log_dir, "best_model"))
-
-    # print(evaluate_policy(model, vec_env, n_eval_episodes=n_envs*2))
-
-    # obs = vec_env.reset()
-    # while True:
-    #     action, _states = model.predict(obs)
-    #     obs, rewards, dones, info = vec_env.step(action)
-    #     vec_env.render("human")
-
     plot_results([run_dir], timesteps, results_plotter.X_TIMESTEPS, "PPO-Hopper")
     plt.savefig(os.path.join(run_dir, "training_graph.png"), format="png")
     plt.show()
 
-    #
-    # TASK 4 & 5: train and test policies on the Hopper env with stable-baselines3
-    #
 
 if __name__ == '__main__':
     main()
