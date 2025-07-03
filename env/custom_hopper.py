@@ -9,6 +9,7 @@ import numpy as np
 import gym
 from gym import utils
 from .mujoco_env import MujocoEnv
+from mujoco_py.generated import const
 
 
 class CustomHopper(MujocoEnv, utils.EzPickle):
@@ -17,6 +18,7 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
         utils.EzPickle.__init__(self)
 
         self.original_masses = np.copy(self.sim.model.body_mass[1:])    # Default link masses
+        self.domain = domain
 
         if domain == 'source':  # Source environment has an imprecise torso mass (-30% shift)
             self.sim.model.body_mass[1] *= 0.7
@@ -29,13 +31,19 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
     def sample_parameters(self):
         """Sample masses according to a domain randomization distribution"""
         
-        #
-        # TASK 6: implement domain randomization. Remember to sample new dynamics parameter
-        #         at the start of each training episode.
-        
-        raise NotImplementedError()
+        # These parameters will be passed on to set_parameters
+        # set_parameters expects parameters for [1:]
+        parameters = np.zeros(len(self.sim.model.body_mass) - 1)
 
-        return
+        # Apply UDR to thigh,leg,foot
+        for i in range(len(parameters)):
+            m = self.original_masses[i]
+            parameters[i] = self.np_random.uniform(low=0.5*m,high=1.5*m)
+
+        # No randomization on the torso mass
+        parameters[0] = self.sim.model.body_mass[1]
+
+        return parameters
 
 
     def get_parameters(self):
@@ -81,6 +89,10 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
 
     def reset_model(self):
         """Reset the environment to a random initial state"""
+        
+        if self.domain == "source-udr":
+            self.set_random_parameters()
+
         qpos = self.init_qpos + self.np_random.uniform(low=-.005, high=.005, size=self.model.nq)
         qvel = self.init_qvel + self.np_random.uniform(low=-.005, high=.005, size=self.model.nv)
         self.set_state(qpos, qvel)
@@ -92,6 +104,14 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
         self.viewer.cam.distance = self.model.stat.extent * 0.75
         self.viewer.cam.lookat[2] = 1.15
         self.viewer.cam.elevation = -20
+        
+        # some cosmetic modifications to the rendered video
+        self.viewer._run_speed = 0.25
+        self.viewer.cam.fixedcamid += 1
+        self.viewer.cam.type = const.CAMERA_FIXED
+        if self.viewer.cam.fixedcamid >= self._ncam:
+            self.viewer.cam.fixedcamid = -1
+            self.viewer.cam.type = const.CAMERA_FREE
 
 
     def set_mujoco_state(self, state):
@@ -145,3 +165,9 @@ gym.envs.register(
         kwargs={"domain": "target"}
 )
 
+gym.envs.register(
+        id="CustomHopper-source-UDR-v0",
+        entry_point="%s:CustomHopper" % __name__,
+        max_episode_steps=500,
+        kwargs={"domain": "source-udr"}
+)
