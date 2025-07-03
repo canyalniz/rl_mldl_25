@@ -83,6 +83,7 @@ def parse_args():
     parser.add_argument('--n-envs', default=8, type=positive_int, help='Number of environments to run in parallel')
     parser.add_argument('--device', default='cpu', type=str, help='Network device [cpu, cuda]')
     parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
+    parser.add_argument('--id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
 
     return parser.parse_args()
 
@@ -90,7 +91,7 @@ args = parse_args()
 
 def main():
     # Unique tag of this run based on the timestamp
-    run_tag = strftime("%Y-%m-%d--%H_%M_%S", gmtime())
+    run_tag = strftime("%Y-%m-%d--%H_%M_%S", gmtime()) if args.id is None else args.id
 
     # Create log dir belonging to this run
     run_dir = os.path.join("logs_and_models", run_tag)
