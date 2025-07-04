@@ -28,7 +28,7 @@ from env.custom_hopper import *
 N_TRIALS = 100
 N_STARTUP_TRIALS = 5
 N_EVALUATIONS = 2
-N_TIMESTEPS = int(6e4)
+N_TIMESTEPS = int(3e5)
 EVAL_FREQ = int(N_TIMESTEPS / N_EVALUATIONS)
 N_EVAL_EPISODES = 3
 
@@ -50,6 +50,8 @@ def sample_ppo_params(trial: optuna.Trial) -> Dict[str, Any]:
     activation_fn = trial.suggest_categorical("activation_fn", ["tanh", "relu"])
     ortho_init = trial.suggest_categorical("ortho_init", [False, True])
     max_grad_norm = trial.suggest_float("max_grad_norm", 0.3, 1.0, log=True)
+    gamma = 1.0 - trial.suggest_float("gamma", 0.0001, 0.01, log=True)
+    gae_lambda = 1.0 - trial.suggest_float("gae_lambda", 0.001, 0.1, log=True)
 
     # Display true values.
     # trial.set_user_attr("gamma_", gamma)
@@ -65,6 +67,8 @@ def sample_ppo_params(trial: optuna.Trial) -> Dict[str, Any]:
     return {
         "n_steps": n_steps,
         "learning_rate": learning_rate,
+        "gamma": gamma,
+        "gae_lambda": gae_lambda,
         "vf_coef": vf_coef,
         "ent_coef": ent_coef,
         "max_grad_norm": max_grad_norm,
