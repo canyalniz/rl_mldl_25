@@ -8,3 +8,4 @@ model.mdl
 *.zip
 torch
 logs_and_models/*
+*.db
