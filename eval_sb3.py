@@ -7,6 +7,7 @@
 import argparse
 import os
 import gym
+import pandas as pd
 from env.custom_hopper import *
 import torch
 
@@ -45,21 +46,35 @@ def parse_args():
 args = parse_args()
 
 def main():
-    envs = {
-       "source":"CustomHopper-source-v0",
-       "target":"CustomHopper-target-v0",
-       "source-udr":"CustomHopper-source-UDR-v0"
-       }
-    run_directory = os.path.join(args.logs_models_path, args.run_id)
+      envs = {
+         "source":"CustomHopper-source-v0",
+         "target":"CustomHopper-target-v0",
+         "source-udr":"CustomHopper-source-UDR-v0"
+         }
+      run_dir = os.path.join(args.logs_models_path, args.run_id)
 
-    eval_env = gym.make(envs[args.env])
-    eval_env = Monitor(eval_env, os.path.join(run_directory, "eval_monitor.csv"))
+      eval_env = gym.make(envs[args.env])
+      eval_env = Monitor(eval_env, os.path.join(run_dir, "eval_monitor.csv"))
 
-    model_path = os.path.join(run_directory, args.model_name)
+      model_path = os.path.join(run_dir, args.model_name)
 
-    model = PPO.load(model_path)
+      model = PPO.load(model_path)
 
-    print(evaluate_policy(model, eval_env, n_eval_episodes=args.n_episodes))
+      eval_records_path = os.path.join(run_dir, "eval_records.csv")
+      try:
+          eval_records = pd.read_csv(eval_records_path)
+      except OSError:
+          print("No existing evaluation records found for this run. Creating new records.")
+          eval_records = pd.DataFrame(columns=["model", "returns_mean", "returns_std"])
+
+      returns_mean, returns_std = evaluate_policy(model, eval_env, n_eval_episodes=args.n_episodes)
+      
+      print(f"mean: {returns_mean}")
+      print(f"std: {returns_std}")
+      
+      new_row = pd.DataFrame([[args.model_name, returns_mean, returns_std]], columns=["model", "returns_mean", "returns_std"])
+      eval_records = pd.concat([eval_records, new_row], ignore_index=True)
+      eval_records.to_csv(eval_records_path, index=False)
 
 if __name__ == '__main__':
     main()
