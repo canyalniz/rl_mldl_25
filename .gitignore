@@ -9,3 +9,4 @@ model.mdl
 torch
 logs_and_models/*
 *.db
+archive/*
