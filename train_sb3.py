@@ -24,6 +24,27 @@ from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
 from stable_baselines3.common.callbacks import BaseCallback
 
+def positive_int(x):
+   x = int(x)
+   if x <= 0:
+      raise argparse.ArgumentTypeError("Needs to be positive")
+   return x
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--timesteps', default=1000000, type=positive_int, help='Number of training timesteps')
+    parser.add_argument('--check-freq', default=1000, type=positive_int, help='Wait for this many timesteps before checking to see if you should save the model')
+    parser.add_argument('--skip-over', default=750000, type=positive_int, help='Wait for this many timesteps before checking to see if you should save the model')
+    parser.add_argument('--n-envs', default=8, type=positive_int, help='Number of environments to run in parallel')
+    parser.add_argument('--device', default='cpu', type=str, help='Network device [cpu, cuda]')
+    parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
+    parser.add_argument('--model-name', default='best_model', type=str, help='Model will be saved by this name in the run directory corresponding to the id')
+    parser.add_argument('--id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
+
+    return parser.parse_args()
+
+args = parse_args()
+
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
     Callback for saving a model (the check is done every ``check_freq`` steps)
@@ -40,7 +61,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         self.check_freq = check_freq
         self.skip_over = skip_over
         self.log_dir = log_dir
-        self.save_path = os.path.join(log_dir, "best_model")
+        self.save_path = os.path.join(log_dir, args.model_name)
         self.best_mean_reward = -np.inf
 
     def _init_callback(self) -> None:
@@ -70,33 +91,16 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
-def positive_int(x):
-   x = int(x)
-   if x <= 0:
-      raise argparse.ArgumentTypeError("Needs to be positive")
-   return x
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--timesteps', default=1000000, type=positive_int, help='Number of training timesteps')
-    parser.add_argument('--check-freq', default=1000, type=positive_int, help='Wait for this many timesteps before checking to see if you should save the model')
-    parser.add_argument('--skip-over', default=750000, type=positive_int, help='Wait for this many timesteps before checking to see if you should save the model')
-    parser.add_argument('--n-envs', default=8, type=positive_int, help='Number of environments to run in parallel')
-    parser.add_argument('--device', default='cpu', type=str, help='Network device [cpu, cuda]')
-    parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
-    parser.add_argument('--id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
-
-    return parser.parse_args()
-
-args = parse_args()
-
 def main():
     # Unique tag of this run based on the timestamp
     run_tag = strftime("%Y-%m-%d--%H_%M_%S", gmtime()) if args.id is None else args.id
 
     # Create log dir belonging to this run
     run_dir = os.path.join("logs_and_models", run_tag)
-    os.makedirs(run_dir, exist_ok=False)
+    os.makedirs(run_dir, exist_ok=True)
+
+    if os.path.exists(os.path.join(run_dir, args.model_name)):
+       raise FileExistsError("The model already exists, refusing to overwrite, exiting...")
 
     n_envs = args.n_envs
     envs = {
