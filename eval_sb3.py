@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--n-episodes', default=50, type=positive_int, help='Number of episodes to evaluate the agent')
     parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
     parser.add_argument('--logs-models-path', default='logs_and_models', type=str, help='Path to the logs_and_models directory')
-    parser.add_argument('--model-name', default='best_model', type=str, help='Path to the logs_and_models directory')
+    parser.add_argument('--model-name', default='best_model', type=str, help='Name of the model in the run directory')
 
     return parser.parse_args()
 
