@@ -7,6 +7,7 @@
 import argparse
 import os
 import gym
+import yaml
 from env.custom_hopper import *
 
 import matplotlib.pyplot as plt
@@ -118,31 +119,14 @@ def main():
     # print('Action space:', vec_env.action_space)  # action-space
     # print('Dynamics parameters:', vec_env.get_parameters())  # masses of each link of the Hopper
 
-    # hyperparams = dict(
-    #         # env_wrapper=[{"gymnasium.wrappers.TimeLimit": {"max_episode_steps": 100}}],
-    #         normalize_advantage=True,
-    #         # n_envs=1,
-    #         policy="MlpPolicy",
-    #         batch_size=32,
-    #         n_steps=512,
-    #         gamma=0.999,
-    #         learning_rate=9.80828e-05,
-    #         ent_coef=0.00229519,
-    #         clip_range=0.2,
-    #         n_epochs=5,
-    #         gae_lambda=0.99,
-    #         max_grad_norm=0.7,
-    #         vf_coef=0.835671,
-    #         # use_sde=True,
-    #         policy_kwargs=dict(
-    #             log_std_init=-2,
-    #             ortho_init=False,
-    #             activation_fn=torch.nn.ReLU,
-    #             net_arch=dict(pi=[256, 256], vf=[256, 256])
-    #         ),
-    #         verbose=1,
-    #         device="cpu",
-    # )
+    hyperparams={
+       'learning_rate': 0.0007492360821111548,
+       'n_steps': 2**11,
+       'gamma': 1- 0.006075826916453786,
+       'gae_lambda': 1 - 0.08382799471957811,
+       'ent_coef': 2.1645583839106794e-05,
+       'clip_range': 0.21302588603725742,
+       'vf_coef': 0.6506617414668732}
 
     timesteps = args.timesteps
 
@@ -150,7 +134,19 @@ def main():
     callback = SaveOnBestTrainingRewardCallback(check_freq=args.check_freq, skip_over=(args.skip_over // n_envs), log_dir=run_dir)
 
     # model = PPO(env=vec_env, **hyperparams)
-    model = PPO(policy="MlpPolicy", env=train_env, verbose=1, device=args.device)
+    model = PPO(policy="MlpPolicy", env=train_env, verbose=1, device=args.device, _init_setup_model=False, **hyperparams)
+    
+    # get argument names to PPO.__init__
+    PPO_init_arguments = PPO.__init__.__code__.co_varnames[:PPO.__init__.__code__.co_argcount]
+    # get the hyperparameter values used to initialize the model
+    hyperparams_reference = {arg:model.__dict__[arg] for arg in PPO_init_arguments if arg not in ["self", "_init_setup_model", "policy", "env"]}
+    hyperparams_reference['device'] = str(hyperparams_reference['device'])
+    # save hyperparameters for reference
+    with open(os.path.join(run_dir, 'hyperparams.yaml'), 'w') as f:
+       yaml.dump(hyperparams_reference, f)
+    
+    model = PPO(policy="MlpPolicy", env=train_env, verbose=1, device=args.device, _init_setup_model=True, **hyperparams)
+    # learn the policy
     model.learn(total_timesteps=timesteps, progress_bar=True, callback=callback)
 
     plot_results([run_dir], timesteps, results_plotter.X_TIMESTEPS, "PPO-Hopper")
