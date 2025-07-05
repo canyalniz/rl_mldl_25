@@ -107,11 +107,8 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
         
         # some cosmetic modifications to the rendered video
         self.viewer._run_speed = 0.25
-        self.viewer.cam.fixedcamid += 1
+        self.viewer.cam.fixedcamid = 0
         self.viewer.cam.type = const.CAMERA_FIXED
-        if self.viewer.cam.fixedcamid >= self._ncam:
-            self.viewer.cam.fixedcamid = -1
-            self.viewer.cam.type = const.CAMERA_FREE
 
 
     def set_mujoco_state(self, state):
