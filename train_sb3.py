@@ -119,14 +119,23 @@ def main():
     # print('Action space:', vec_env.action_space)  # action-space
     # print('Dynamics parameters:', vec_env.get_parameters())  # masses of each link of the Hopper
 
+    # hyperparams={
+    #    'learning_rate': 0.0007492360821111548,
+    #    'n_steps': 2**11,
+    #    'gamma': 1- 0.006075826916453786,
+    #    'gae_lambda': 1 - 0.08382799471957811,
+    #    'ent_coef': 2.1645583839106794e-05,
+    #    'clip_range': 0.21302588603725742,
+    #    'vf_coef': 0.6506617414668732}
+    
     hyperparams={
-       'learning_rate': 0.0007492360821111548,
+       'learning_rate': 0.0006029621422146909,
        'n_steps': 2**11,
-       'gamma': 1- 0.006075826916453786,
-       'gae_lambda': 1 - 0.08382799471957811,
-       'ent_coef': 2.1645583839106794e-05,
-       'clip_range': 0.21302588603725742,
-       'vf_coef': 0.6506617414668732}
+       'gamma': 1-0.009293230682418586,
+       'gae_lambda': 1 - 0.06027683642684977,
+       'ent_coef': 7.94158163281704e-06,
+       'clip_range': 0.14778195849652764,
+       'vf_coef': 0.5083057178072663}
 
     timesteps = args.timesteps
 
