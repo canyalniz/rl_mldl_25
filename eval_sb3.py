@@ -9,21 +9,10 @@ import os
 import gym
 import pandas as pd
 from env.custom_hopper import *
-import torch
-
-import matplotlib.pyplot as plt
-
-from time import gmtime, strftime
 
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import SubprocVecEnv
 
-from stable_baselines3.common import results_plotter
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import VecMonitor
-from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
-from stable_baselines3.common.callbacks import BaseCallback
 
 from stable_baselines3.common.evaluation import evaluate_policy
 
