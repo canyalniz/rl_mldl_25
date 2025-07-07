@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument('--device', default='cpu', type=str, help='Network device [cpu, cuda]')
     parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
     parser.add_argument('--model-name', default='best_model', type=str, help='Model will be saved by this name in the run directory corresponding to the id')
-    parser.add_argument('--id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
+    parser.add_argument('--run-id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
 
     return parser.parse_args()
 

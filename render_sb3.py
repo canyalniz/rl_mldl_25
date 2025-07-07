@@ -19,7 +19,7 @@ def positive_int(x):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run-id', type=str, help='Training environment [source, target, source-udr]', required=True)
+    parser.add_argument('--run-id', type=str, help='ID corresponding to the run to identify the run directory', required=True)
     parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
     parser.add_argument('--logs-models-path', default='logs_and_models', type=str, help='Path to the logs_and_models directory')
     parser.add_argument('--model-name', default='best_model', type=str, help='Path to the logs_and_models directory')

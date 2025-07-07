@@ -24,7 +24,7 @@ def positive_int(x):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run-id', type=str, help='Training environment [source, target, source-udr]', required=True)
+    parser.add_argument('--run-id', type=str, help='ID corresponding to the run to identify the run directory', required=True)
     parser.add_argument('--n-episodes', default=50, type=positive_int, help='Number of episodes to evaluate the agent')
     parser.add_argument('--eval-env', default='source', type=str, help='Training environment [source, target, source-udr]')
     parser.add_argument('--train-env', default='source', type=str, help='Training environment [source, target, source-udr]')
