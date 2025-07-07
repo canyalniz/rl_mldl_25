@@ -14,7 +14,7 @@ from agent import Agent, Policy
 def parse_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--model-name', default="best_model", type=str, help='Name of model that should be used to collect transition data')
-	parser.add_argument('--run-id', type=str, help='ID corresponding to the run to identify the run directory', required=True)
+	parser.add_argument('--run-id', default="source_optuna_2", type=str, help='ID corresponding to the run to identify the run directory')
 	parser.add_argument('--env', default="target", type=str, help='The environment for which the transition data should be collected [source, target]')
 	parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
 	parser.add_argument('--logs-models-path', default='logs_and_models', type=str, help='Path to the logs_and_models directory')
