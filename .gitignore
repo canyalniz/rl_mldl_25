@@ -10,3 +10,4 @@ torch
 logs_and_models/*
 *.db
 archive/*
+transitions/*
