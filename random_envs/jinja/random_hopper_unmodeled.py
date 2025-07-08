@@ -1,6 +1,7 @@
 """
 This file was taken from the official random_envs repository https://github.com/gabrieletiboni/random-envs
 This file is included in the main project repository to be able to submit a self contained code base.
+The file was modified to fit the mldl25 project requirements.
 
 @misc{tiboniadrbenchmark,
     title={Online vs. Offline Adaptive Domain Randomization Benchmark},
@@ -36,10 +37,6 @@ class RandomHopperUnmodeledEnv(MujocoEnv, utils.EzPickle):
         
         MujocoEnv.__init__(self, 'hopper.xml', 4)
         utils.EzPickle.__init__(self)
-        
-        # Torso mass has an offset value of -20%
-        self.original_fixed_mass = self.sim.model.body_mass[1]
-        self.sim.model.body_mass[1] = 0.8*self.original_fixed_mass
 
         # Dynamics parameters to randomize: 3 masses
         self.original_masses = self.sim.model.body_mass[2:]
