@@ -93,7 +93,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
 def main():
     # Unique tag of this run based on the timestamp
-    run_tag = strftime("%Y-%m-%d--%H_%M_%S", gmtime()) if args.id is None else args.id
+    run_tag = strftime("%Y-%m-%d--%H_%M_%S", gmtime()) if args.run_id is None else args.run_id
 
     # Create log dir belonging to this run
     run_dir = os.path.join("logs_and_models", run_tag)
