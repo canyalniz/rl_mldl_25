@@ -62,7 +62,7 @@ if __name__ == "__main__":
     study = optuna.create_study(
         study_name="ppo_source_study",
         direction="maximize",
-        storage="sqlite:///ppo_source_study.db",
+        storage="sqlite:///optuna_studies/ppo_source_study.db",
         load_if_exists=True
     )
 
