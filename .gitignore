@@ -12,3 +12,4 @@ logs_and_models/*
 archive/*
 transitions/*
 dropo_datasets/*
+dropo_output/*
