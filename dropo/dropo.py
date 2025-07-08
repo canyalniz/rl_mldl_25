@@ -1,6 +1,5 @@
 """
 Taken from the official DROPO repository https://github.com/gabrieletiboni/dropo
-The original file had small errors that required small fixes, the changes can be found in the forked repository https://github.com/canyalniz/dropo
 This file is included in the main project repository to be able to submit a self contained code base.
 
 @article{tiboni2023dropo,
