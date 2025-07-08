@@ -5,7 +5,7 @@ import glob
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--transitions-dir', default='transitions', type=str, help='Path to the transitions directory')
+	parser.add_argument('--transitions-dir', default='dropo_datasets/transitions', type=str, help='Path to the transitions directory')
 
 	return parser.parse_args()
 

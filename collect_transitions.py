@@ -20,7 +20,7 @@ def parse_args():
 	parser.add_argument('--logs-models-path', default='logs_and_models', type=str, help='Path to the logs_and_models directory')
 	parser.add_argument('--render', default=False, action='store_true', help='Render the simulator')
 	parser.add_argument('--episodes', default=100, type=int, help='Number of episodes to collect data over')
-	parser.add_argument('--output-dir', default='transitions', type=str, help='Path to the transitions directory')
+	parser.add_argument('--output-dir', default='dropo_datasets/transitions', type=str, help='Path to the transitions directory')
 
 	return parser.parse_args()
 

@@ -11,3 +11,4 @@ logs_and_models/*
 *.db
 archive/*
 transitions/*
+dropo_datasets/*
