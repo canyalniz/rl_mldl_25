@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument('--n-envs', default=8, type=positive_int, help='Number of environments to run in parallel')
     parser.add_argument('--device', default='cpu', type=str, help='Network device [cpu, cuda]')
     parser.add_argument('--env', default='source', type=str, help='Training environment [source, target, source-udr]')
-    parser.add_argument('--id', default=None, type=str, required=True, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
+    parser.add_argument('--run-id', default=None, type=str, required=True, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
     parser.add_argument('--model-name', default='best_model', type=str, help='Name of the model in the run directory')
     parser.add_argument('--iter-code', default="0", type=str, help='Fine tuning iteration you are running on the same starting model')
     parser.add_argument('--lr-factor', default=0.55, type=restricted_float, help='The original lr will be multiplied by this factor before the linear lr decay starts')
