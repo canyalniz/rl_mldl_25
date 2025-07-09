@@ -69,7 +69,7 @@ def main():
     policy = Policy(observation_space_dim, action_space_dim)
     
     value_function = None
-    if args.critic or args.baseline:
+    if args.critic:
         value_function = ValueEstimator(observation_space_dim)
     
     agent = Agent(policy=policy, run_id=args.run_id, value_function=value_function, critic=args.critic, device=args.device, model_name=args.model_name, check_freq=args.check_freq, skip_over=args.skip_over)

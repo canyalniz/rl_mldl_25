@@ -157,7 +157,7 @@ class Agent(object):
             if self.value_function:
                 baseline = self.value_function(states)
             else:
-                baseline = 20
+                baseline = 0
             
             delta = (discounted_returns - baseline).detach()
             policy_gradient_loss = -1 * torch.sum(discount_vector * delta * action_log_probs)
