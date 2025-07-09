@@ -125,7 +125,7 @@ def linear_schedule(initial_value):
 
 def main():
     # Unique tag of this run based on the timestamp
-    run_tag = args.id
+    run_tag = args.run_id
 
     # Create log dir belonging to this run
     run_dir = os.path.join("logs_and_models", run_tag)
