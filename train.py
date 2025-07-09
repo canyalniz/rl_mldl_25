@@ -7,6 +7,7 @@ from time import gmtime, strftime
 
 import torch
 import gym
+import tqdm
 
 from env.custom_hopper import *
 from agent import Agent, Policy, ValueEstimator
@@ -27,6 +28,8 @@ def parse_args():
     parser.add_argument('--model-name', default='best_model', type=str, help='Model will be saved by this name in the run directory corresponding to the id')
     parser.add_argument('--run-id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
     parser.add_argument('--print-after-n-episodes', default=1000, type=positive_int, help="How many episodes to wait between printing status information")
+    parser.add_argument('--critic', default=False, action="store_true", help="Option to activate Actor-Critic")
+    parser.add_argument('--baseline', default=False, action="store_true", help="Option to activate baseline for REINFORCE")
 
     return parser.parse_args()
 
@@ -65,13 +68,11 @@ def main():
 
     policy = Policy(observation_space_dim, action_space_dim)
     
-    value_function = ValueEstimator(observation_space_dim)
+    value_function = None
+    if args.critic or args.baseline:
+        value_function = ValueEstimator(observation_space_dim)
     
-    critic = False
-    if critic:
-        assert isinstance(value_function, ValueEstimator)
-    
-    agent = Agent(policy=policy, run_id=args.run_id, value_function=value_function, critic=critic, device=args.device)
+    agent = Agent(policy=policy, run_id=args.run_id, timesteps=args.timesteps, value_function=value_function, critic=args.critic, device=args.device, model_name=args.model_name, check_freq=args.check_freq, skip_over=args.skip_over)
 
     #
     # TASK 2 and 3: interleave data collection to policy updates
@@ -79,35 +80,43 @@ def main():
 
     timestep = 0
     episode = 0
-    while timestep <= args.timesteps:
-        done = False
-        train_reward = 0
-        state = env.reset()  # Reset the environment and observe the initial state
+    try:
+        with tqdm.tqdm(total=args.timesteps) as pbar:
+            while timestep <= args.timesteps:
+                done = False
+                train_reward = 0
+                state = env.reset()  # Reset the environment and observe the initial state
 
-        while not done:  # Loop until the episode is over
+                while not done:  # Loop until the episode is over
 
-            action, action_probabilities = agent.get_action(state)
-            previous_state = state
+                    action, action_probabilities = agent.get_action(state)
+                    previous_state = state
 
-            state, reward, done, info = env.step(action.detach().cpu().numpy())
+                    state, reward, done, info = env.step(action.detach().cpu().numpy())
 
-            agent.store_outcome(previous_state, state, action_probabilities, reward, done)
+                    agent.store_outcome(previous_state, state, action_probabilities, reward, done)
 
-            train_reward += reward
+                    train_reward += reward
 
-            if critic:
-                agent.update_policy()
-            
-            timestep += 1
+                    if args.critic:
+                        agent.update_policy()
+                    
+                    timestep += 1
+                    pbar.update(1)
 
-        if not critic:
-            agent.update_policy()
+                if not args.critic:
+                    agent.update_policy()
+                
+                episode += 1
+                
+                if episode%args.print_after_n_episodes == 0:
+                    print('Training episode:', episode)
+                    print('Episode return:', train_reward)
         
-        episode += 1
-        
-        if episode%args.print_after_n_episodes == 0:
-            print('Training episode:', episode)
-            print('Episode return:', train_reward)
+        agent.save_monitor_csv()
+    except KeyboardInterrupt as e:
+        agent.save_model()
+        agent.save_monitor_csv()
         
         
 

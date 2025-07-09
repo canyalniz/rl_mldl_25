@@ -3,6 +3,7 @@ import torch
 import os
 import torch.nn.functional as F
 from torch.distributions import Normal
+import pandas as pd
 
 
 def discount_rewards(r, gamma):
@@ -90,7 +91,7 @@ class Policy(torch.nn.Module):
 
 
 class Agent(object):
-    def __init__(self, policy, run_id, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
+    def __init__(self, policy, run_id, timesteps, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
         self.train_device = device
         self.run_id = run_id
         self.verbose = verbose
@@ -121,11 +122,18 @@ class Agent(object):
         self.action_log_prob = None
         self.reward = None
 
-        self.n_calls = 0
-        self.last100rewards = np.zeros(100)
         self.best_mean_reward = -np.inf
         self.skip_over = skip_over
         self.check_freq = check_freq
+
+        self.episode_reward = 0
+        self.episode_timesteps = 0
+        self.timesteps = 0
+        # total return of episode
+        self.r = []
+        # episode length in env timesteps
+        self.l = []
+
 
         self.logs_dir = "logs_and_models"
         self.model_name = model_name
@@ -134,10 +142,7 @@ class Agent(object):
         if not self.critic:
             action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
             states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
-            next_states = torch.stack(self.next_states, dim=0).to(self.train_device).squeeze(-1)
             rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
-            done = torch.Tensor(self.done).to(self.train_device)
-            done = done[-1]
 
             self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
@@ -194,20 +199,6 @@ class Agent(object):
             if self.done:
                 self.I = 1
 
-        if (self.n_calls>=self.skip_over) and (self.n_calls % self.check_freq == 0):
-            # Mean training reward over the last 100 episodes
-            mean_reward = np.mean(self.last100rewards)
-
-            print(f"Num updates: {self.n_calls}")
-            print(f"Best mean reward: {self.best_mean_reward:.2f} - Last mean reward per episode: {mean_reward:.2f}")
-
-            # New best model, you could save the agent here
-            if mean_reward > self.best_mean_reward:
-                self.best_mean_reward = mean_reward
-                
-                self.save_model()
-
-        self.n_calls += 1
 
         return
     
@@ -218,6 +209,11 @@ class Agent(object):
         torch.save(self.policy.state_dict(), save_path + "_policy.mdl")
         if not (self.value_function is None):
             torch.save(self.value_function.state_dict(), save_path + "_value_function.mdl")
+    
+    def save_monitor_csv(self):
+        save_path = os.path.join(self.logs_dir, self.run_id, self.model_name + "_monitor.csv")
+        monitor = pd.DataFrame({"r": self.r, "l": self.l})
+        monitor.to_csv(save_path, index=False)
 
     def get_action(self, state, evaluation=False):
         """ state -> action (3-d), action_log_densities """
@@ -238,8 +234,27 @@ class Agent(object):
 
 
     def store_outcome(self, state, next_state, action_log_prob, reward, done):
-        self.last100rewards[self.n_calls % 100] = reward
+        self.episode_reward += reward
+        self.episode_timesteps += 1
+        self.timesteps += 1
+        if done:
+            self.r.append(self.episode_reward)
+            self.l.append(self.episode_timesteps)
+            
+            self.episode_reward = 0
+            self.episode_timesteps = 0
+        
+        if (self.timesteps>=self.skip_over) and (self.timesteps % self.check_freq == 0):
+            if len(self.r) > 0:
+                # Mean training reward over the last 100 episodes
+                mean_reward = np.mean(self.r[-100:])
 
+                # New best model, you could save the agent here
+                if mean_reward > self.best_mean_reward:
+                    self.best_mean_reward = mean_reward
+                    
+                    self.save_model()
+        
         if not self.critic:
             self.states.append(torch.from_numpy(state).float())
             self.next_states.append(torch.from_numpy(next_state).float())
