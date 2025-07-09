@@ -72,7 +72,7 @@ def main():
     if args.critic or args.baseline:
         value_function = ValueEstimator(observation_space_dim)
     
-    agent = Agent(policy=policy, run_id=args.run_id, timesteps=args.timesteps, value_function=value_function, critic=args.critic, device=args.device, model_name=args.model_name, check_freq=args.check_freq, skip_over=args.skip_over)
+    agent = Agent(policy=policy, run_id=args.run_id, value_function=value_function, critic=args.critic, device=args.device, model_name=args.model_name, check_freq=args.check_freq, skip_over=args.skip_over)
 
     #
     # TASK 2 and 3: interleave data collection to policy updates

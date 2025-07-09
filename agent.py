@@ -91,7 +91,7 @@ class Policy(torch.nn.Module):
 
 
 class Agent(object):
-    def __init__(self, policy, run_id, timesteps, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
+    def __init__(self, policy, run_id, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
         self.train_device = device
         self.run_id = run_id
         self.verbose = verbose
