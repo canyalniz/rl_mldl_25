@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import os
 import torch.nn.functional as F
 from torch.distributions import Normal
 
@@ -17,8 +18,8 @@ class ValueEstimator(torch.nn.Module):
     def __init__(self, state_space):
         super().__init__()
         self.state_space = state_space
-        self.hidden = 32
-        self.relu = torch.nn.ReLU()
+        self.hidden = 64
+        self.activation_fn = torch.nn.Tanh()
 
         self.fc1 = torch.nn.Linear(state_space, self.hidden)
         self.fc2 = torch.nn.Linear(self.hidden, self.hidden)
@@ -31,13 +32,13 @@ class ValueEstimator(torch.nn.Module):
     def init_weights(self):
         for m in self.modules():
             if type(m) is torch.nn.Linear:
-                torch.nn.init.kaiming_normal_(m.weight)
+                torch.nn.init.orthogonal_(m.weight)
                 torch.nn.init.zeros_(m.bias)
 
 
     def forward(self, x):
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
+        x = self.activation_fn(self.fc1(x))
+        x = self.activation_fn(self.fc2(x))
         output = self.fc3(x)
         
         return output
@@ -48,7 +49,7 @@ class Policy(torch.nn.Module):
         self.state_space = state_space
         self.action_space = action_space
         self.hidden = 64
-        self.relu = torch.nn.ReLU()
+        self.activation_fn = torch.nn.Tanh()
 
         """
             Actor network
@@ -63,19 +64,13 @@ class Policy(torch.nn.Module):
         self.sigma = torch.nn.Parameter(torch.zeros(self.action_space)+init_sigma)
 
 
-        """
-            Critic network
-        """
-        # TASK 3: critic network for actor-critic algorithm
-
-
         self.init_weights()
 
 
     def init_weights(self):
         for m in self.modules():
             if type(m) is torch.nn.Linear:
-                torch.nn.init.kaiming_normal_(m.weight)
+                torch.nn.init.orthogonal_(m.weight)
                 torch.nn.init.zeros_(m.bias)
 
 
@@ -83,27 +78,22 @@ class Policy(torch.nn.Module):
         """
             Actor
         """
-        x_actor = self.relu(self.fc1_actor(x))
-        x_actor = self.relu(self.fc2_actor(x_actor))
+        x_actor = self.activation_fn(self.fc1_actor(x))
+        x_actor = self.activation_fn(self.fc2_actor(x_actor))
         action_mean = self.fc3_actor_mean(x_actor)
 
         sigma = self.sigma_activation(self.sigma)
         normal_dist = Normal(action_mean, sigma)
-
-
-        """
-            Critic
-        """
-        # TASK 3: forward in the critic network
 
         
         return normal_dist
 
 
 class Agent(object):
-    def __init__(self, policy, value_function=None, critic=False, device='cpu'):
+    def __init__(self, policy, run_id, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
         self.train_device = device
-        
+        self.run_id = run_id
+        self.verbose = verbose
         self.policy = policy.to(self.train_device)
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)
 
@@ -131,6 +121,14 @@ class Agent(object):
         self.action_log_prob = None
         self.reward = None
 
+        self.n_calls = 0
+        self.last100rewards = np.zeros(100)
+        self.best_mean_reward = -np.inf
+        self.skip_over = skip_over
+        self.check_freq = check_freq
+
+        self.logs_dir = "logs_and_models"
+        self.model_name = model_name
 
     def update_policy(self):
         if not self.critic:
@@ -196,16 +194,30 @@ class Agent(object):
             if self.done:
                 self.I = 1
 
-        #
-        # TASK 3:
-        #   - compute boostrapped discounted return estimates
-        #   - compute advantage terms
-        #   - compute actor loss and critic loss
-        #   - compute gradients and step the optimizer
-        #
+        if (self.n_calls>=self.skip_over) and (self.n_calls % self.check_freq == 0):
+            # Mean training reward over the last 100 episodes
+            mean_reward = np.mean(self.last100rewards)
+
+            print(f"Num updates: {self.n_calls}")
+            print(f"Best mean reward: {self.best_mean_reward:.2f} - Last mean reward per episode: {mean_reward:.2f}")
+
+            # New best model, you could save the agent here
+            if mean_reward > self.best_mean_reward:
+                self.best_mean_reward = mean_reward
+                
+                self.save_model()
+
+        self.n_calls += 1
 
         return
-
+    
+    def save_model(self):
+        save_path = os.path.join(self.logs_dir, self.run_id, self.model_name)
+        if self.verbose >= 1:
+            print(f"Saving new best model to {save_path}")
+        torch.save(self.policy.state_dict(), save_path + "_policy.mdl")
+        if not (self.value_function is None):
+            torch.save(self.value_function.state_dict(), save_path + "_value_function.mdl")
 
     def get_action(self, state, evaluation=False):
         """ state -> action (3-d), action_log_densities """
@@ -226,6 +238,8 @@ class Agent(object):
 
 
     def store_outcome(self, state, next_state, action_log_prob, reward, done):
+        self.last100rewards[self.n_calls % 100] = reward
+
         if not self.critic:
             self.states.append(torch.from_numpy(state).float())
             self.next_states.append(torch.from_numpy(next_state).float())
