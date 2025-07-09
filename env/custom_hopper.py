@@ -20,12 +20,44 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
         self.original_masses = np.copy(self.sim.model.body_mass[1:])    # Default link masses
         self.domain = domain
 
-        if domain == 'source':  # Source environment has an imprecise torso mass (-30% shift)
+        if 'source' in domain:  # Source environment has an imprecise torso mass (-30% shift)
             self.sim.model.body_mass[1] *= 0.7
+        
+        if domain == "source-normal":
+            # hardcoding the normalized parameters suggested by DROPO
+            self.param_means = np.array([0.62332, 0.58322, 0.94939])
+            self.param_stds = np.array([2.3163, 0.56228, 2.11593])
+            self.param_cov = np.diag(self.param_stds**2)
+
 
     def set_random_parameters(self):
         """Set random masses"""
         self.set_parameters(self.sample_parameters())
+
+    def get_task_search_bounds(self):
+        """Hardcode the search bounds from our experiments"""
+        min_task = np.array([0.5, 0.5, 0.5])
+        max_task = np.array([10, 10, 10])
+        return min_task, max_task
+    
+    def denormalize_parameters(self, parameters):
+        """Denormalize parameters back to their original space
+        
+            Parameters are assumed to be normalized in
+            a space of [0, 4] because we ran DROPO with normalization
+        """
+
+        # hardcoding task_dim to be 3 for our purposes
+        task_dim = 3
+
+        min_task, max_task = self.get_task_search_bounds()
+        parameter_bounds = np.empty((task_dim, 2), float)
+        parameter_bounds[:,0] = min_task
+        parameter_bounds[:,1] = max_task
+
+        orig_parameters = (parameters * (parameter_bounds[:,1]-parameter_bounds[:,0]))/4 + parameter_bounds[:,0]
+
+        return np.array(orig_parameters)
 
 
     def sample_parameters(self):
@@ -35,10 +67,16 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
         # set_parameters expects parameters for [1:]
         parameters = np.zeros(len(self.sim.model.body_mass) - 1)
 
-        # Apply UDR to thigh,leg,foot
-        for i in range(len(parameters)):
-            m = self.original_masses[i]
-            parameters[i] = self.np_random.uniform(low=0.5*m,high=1.5*m)
+        if self.domain == "source-udr":
+            # Apply UDR to thigh,leg,foot
+            for i in range(len(parameters)):
+                m = self.original_masses[i]
+                parameters[i] = self.np_random.uniform(low=0.5*m,high=1.5*m)
+        elif self.domain == "source-normal":
+            sample = np.random.multivariate_normal(self.param_means, self.param_cov)
+            sample = np.clip(sample, 0, 4)
+
+            sample = self.denormalize_parameters(sample)
 
         # No randomization on the torso mass
         parameters[0] = self.sim.model.body_mass[1]
@@ -90,7 +128,7 @@ class CustomHopper(MujocoEnv, utils.EzPickle):
     def reset_model(self):
         """Reset the environment to a random initial state"""
         
-        if self.domain == "source-udr":
+        if self.domain == "source-udr" or self.domain == "source-normal":
             self.set_random_parameters()
 
         qpos = self.init_qpos + self.np_random.uniform(low=-.005, high=.005, size=self.model.nq)
@@ -167,4 +205,11 @@ gym.envs.register(
         entry_point="%s:CustomHopper" % __name__,
         max_episode_steps=500,
         kwargs={"domain": "source-udr"}
+)
+
+gym.envs.register(
+        id="CustomHopper-source-normal-v0",
+        entry_point="%s:CustomHopper" % __name__,
+        max_episode_steps=500,
+        kwargs={"domain": "source-normal"}
 )

@@ -106,7 +106,8 @@ def main():
     envs = {
        "source":"CustomHopper-source-v0",
        "target":"CustomHopper-target-v0",
-       "source-udr":"CustomHopper-source-UDR-v0"
+       "source-udr":"CustomHopper-source-UDR-v0",
+       "source-normal":"CustomHopper-source-normal-v0"
        }
 
     log_filename = os.path.join(run_dir, "train_monitor.csv")
