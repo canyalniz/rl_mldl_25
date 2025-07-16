@@ -89,13 +89,15 @@ def main():
        'gae_lambda': 1 - 0.06027683642684977,
        'ent_coef': 7.94158163281704e-06,
        'clip_range': 0.14778195849652764,
-       'vf_coef': 0.5083057178072663}
+       'vf_coef': 0.5083057178072663,
+       'policy': 'MlpPolicy',       
+       }
 
     timesteps = args.timesteps
     
     ## SAVE HYPERPARAMETERS ##
     # Create the model without initializing it, this is to get hyperparameter information
-    model = PPO(policy="MlpPolicy", env=train_env, verbose=1, device=args.device, _init_setup_model=False, **hyperparams)
+    model = PPO(env=train_env, device=args.device, verbose=1, _init_setup_model=False, **hyperparams)
     # Get argument names to PPO.__init__
     PPO_init_arguments = PPO.__init__.__code__.co_varnames[:PPO.__init__.__code__.co_argcount]
     # Get the hyperparameter values used to initialize the model
@@ -107,7 +109,7 @@ def main():
     
     ## MODEL CREATION ##
     # Create the model according to the given command-line arguments and the given hyperparameters
-    model = PPO(policy="MlpPolicy", env=train_env, verbose=1, device=args.device, _init_setup_model=True, **hyperparams)
+    model = PPO(env=train_env, device=args.device, verbose=1, _init_setup_model=True, **hyperparams)
     
     ## TRAINING ##    
     if n_envs > 1:
