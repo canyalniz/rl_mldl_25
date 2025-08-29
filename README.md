@@ -62,7 +62,9 @@ paru -S gcc13
 [Train](train.py) and [test](test.py) the vanilla policy gradient method REINFORCE with or without baselines. The model used for REINFORCE is [here](agent.py).
 ### PPO
 #### Folder Structure
-Before you run any PPO related scripts, you must first create a dedicated `logs & models` directory. By default this is assumed to be a folder named `logs_and_models` in the same directory as the scripts. This will be populated by dedicated folders for each run and will hold the produced models as well as logs regarding training and evaluation.
+Before you run any PPO related scripts, you must first create a dedicated `logs & models` directory. By default this is assumed to be a folder named `logs_and_models` in the same directory as the scripts. This will be populated by dedicated folders for each run and will hold the produced model as well as logs regarding training and evaluation.
+
+Due to the convention of StableBaselines3 Monitor logs we have one model per run for our use case.
 
 For hyperparameter optimization the script expects there to be a dedicated folder called `optuna_studies` in the same directory as itself.
 
