@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument('--train-env', default='source', type=str, help='Training environment [source, target, source-udr]')
     parser.add_argument('--logs-models-path', default='logs_and_models', type=str, help='Path to the logs_and_models directory')
     parser.add_argument('--model-name', default='best_model', type=str, help='Name of the model in the run directory')
+    parser.add_argument('--print-only', action='store_true', help='If this flag is set this evaluation run will not be recorded in the global eval_records.csv in the logs_and_models directory')
 
     return parser.parse_args()
 
@@ -54,14 +55,6 @@ def main():
 
     agent = Agent(policy=policy, value_function=value_function, run_id=args.run_id)
 
-    eval_records_path = os.path.join(run_dir, "eval_records.csv")
-    try:
-        eval_records = pd.read_csv(eval_records_path)
-    except OSError:
-        print("No existing evaluation records found for this run. Creating new records.")
-        eval_records = pd.DataFrame(columns=["model", "returns_mean", "returns_std", "eval_env", "train_env"])
-
-
     rewards = np.zeros(args.n_episodes)
     for episode in range(args.n_episodes):
         done = False
@@ -81,9 +74,17 @@ def main():
     returns_mean = np.mean(rewards)
     returns_std = np.std(rewards)
 
-    new_row = pd.DataFrame([[args.model_name, returns_mean, returns_std, args.eval_env, args.train_env]], columns=["model", "returns_mean", "returns_std", "eval_env", "train_env"])
-    eval_records = pd.concat([eval_records, new_row], ignore_index=True)
-    eval_records.to_csv(eval_records_path, index=False)
+    if not args.print_only:
+        eval_records_path = os.path.join(args.logs_models_path, "eval_records.csv")
+        try:
+            eval_records = pd.read_csv(eval_records_path)
+        except OSError:
+            print("No existing global evaluation records found. Creating new records.")
+            eval_records = pd.DataFrame(columns=["run_id", "eval_env", "train_env", "returns_mean", "returns_std"])
+
+        new_row = pd.DataFrame([[args.run_id, args.eval_env, args.train_env, returns_mean, returns_std]], columns=["run_id", "eval_env", "train_env", "returns_mean", "returns_std"])
+        eval_records = pd.concat([eval_records, new_row], ignore_index=True)
+        eval_records.to_csv(eval_records_path, index=False)
 
 
 if __name__ == '__main__':
