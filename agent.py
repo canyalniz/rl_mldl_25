@@ -133,10 +133,19 @@ class Agent(object):
         self.r = []
         # episode length in env timesteps
         self.l = []
+        # wall clock time since t_start
+        self.t = []
+        # training run start time
+        self.t_start = None
+        self.env_id = None
 
 
         self.logs_dir = "logs_and_models"
         self.model_name = model_name
+
+    def set_metadata(self, t_start, env_id):
+        self.t_start = t_start
+        self.env_id = env_id
 
     def update_policy(self):
         if not self.critic:
@@ -212,8 +221,14 @@ class Agent(object):
     
     def save_monitor_csv(self):
         save_path = os.path.join(self.logs_dir, self.run_id, self.model_name + "_monitor.csv")
-        monitor = pd.DataFrame({"r": self.r, "l": self.l})
-        monitor.to_csv(save_path, index=False)
+        monitor = pd.DataFrame({"r": self.r, "l": self.l, "t": self.t})
+        metadata = {
+            "t_start": self.t_start if self.t_start else 0,
+            "env_id": self.env_id if self.env_id else "None"
+        }
+        with open(save_path, "a") as f:
+            f.write("#" + str(metadata))
+            monitor.to_csv(f, index=True)
 
     def get_action(self, state, evaluation=False):
         """ state -> action (3-d), action_log_densities """
@@ -233,13 +248,14 @@ class Agent(object):
             return action, action_log_prob
 
 
-    def store_outcome(self, state, next_state, action_log_prob, reward, done):
+    def store_outcome(self, state, next_state, action_log_prob, reward, done, t_delta):
         self.episode_reward += reward
         self.episode_timesteps += 1
         self.timesteps += 1
         if done:
             self.r.append(self.episode_reward)
             self.l.append(self.episode_timesteps)
+            self.t.append(t_delta)
             
             self.episode_reward = 0
             self.episode_timesteps = 0

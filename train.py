@@ -3,7 +3,7 @@
 """
 import argparse
 import os
-from time import gmtime, strftime
+from time import gmtime, strftime, time
 
 import torch
 import gym
@@ -80,7 +80,9 @@ def main():
 
     timestep = 0
     episode = 0
+    t_start = time()
     try:
+        agent.set_metadata(t_start=t_start, env_id=envs[args.env])
         with tqdm.tqdm(total=args.timesteps) as pbar:
             while timestep <= args.timesteps:
                 done = False
@@ -94,7 +96,7 @@ def main():
 
                     state, reward, done, info = env.step(action.detach().cpu().numpy())
 
-                    agent.store_outcome(previous_state, state, action_probabilities, reward, done)
+                    agent.store_outcome(previous_state, state, action_probabilities, reward, done, time() - t_start)
 
                     train_reward += reward
 
