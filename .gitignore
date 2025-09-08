@@ -13,3 +13,4 @@ archive/*
 transitions/*
 dropo_datasets/*
 dropo_output/*
+reinforce_training_runs.sh
