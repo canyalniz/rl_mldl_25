@@ -91,12 +91,15 @@ class Policy(torch.nn.Module):
 
 
 class Agent(object):
-    def __init__(self, policy, run_id, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
+    def __init__(self, policy, run_id, scalar_baseline=0, value_function=None, critic=False, device='cpu', skip_over=0, check_freq=1000, model_name="best_model", verbose=1):
         self.train_device = device
         self.run_id = run_id
         self.verbose = verbose
         self.policy = policy.to(self.train_device)
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)
+
+        if value_function and scalar_baseline:
+            raise ValueError("Ambiguous initialization. Scalar baseline and value function baseline are mutually exclusive.")
 
         if value_function:
             self.value_function = value_function.to(self.train_device)
@@ -106,6 +109,7 @@ class Agent(object):
                 raise ValueError("Actor Critic agent needs to be initialized with a ValueEstimator.")
 
             self.value_function = None
+            self.scalar_baseline = scalar_baseline
 
         self.critic = critic
         self.I = 1 if critic else None
@@ -166,7 +170,7 @@ class Agent(object):
             if self.value_function:
                 baseline = self.value_function(states)
             else:
-                baseline = 0
+                baseline = self.scalar_baseline
             
             delta = (discounted_returns - baseline).detach()
             policy_gradient_loss = -1 * torch.sum(discount_vector * delta * action_log_probs)
@@ -227,8 +231,8 @@ class Agent(object):
             "env_id": self.env_id if self.env_id else "None"
         }
         with open(save_path, "a") as f:
-            f.write("#" + str(metadata))
-            monitor.to_csv(f, index=True)
+            f.write("#" + str(metadata) + "\n")
+            monitor.to_csv(f, index=False)
 
     def get_action(self, state, evaluation=False):
         """ state -> action (3-d), action_log_densities """

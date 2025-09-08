@@ -29,7 +29,8 @@ def parse_args():
     parser.add_argument('--run-id', default=None, type=str, help='ID of the run, if no id is provided it is automatically assigned according to the timestamp')
     parser.add_argument('--print-after-n-episodes', default=1000, type=positive_int, help="How many episodes to wait between printing status information")
     parser.add_argument('--critic', default=False, action="store_true", help="Option to activate Actor-Critic")
-    parser.add_argument('--baseline', default=False, action="store_true", help="Option to activate the value function baseline for REINFORCE")
+    parser.add_argument('--baseline-vf', default=False, action="store_true", help="Option to activate the value function baseline for REINFORCE")
+    parser.add_argument('--baseline', default=0, type=int, help='Scalar baseline value to use for REINFORCE')
 
     return parser.parse_args()
 
@@ -72,7 +73,7 @@ def main():
     if args.critic:
         value_function = ValueEstimator(observation_space_dim)
     
-    agent = Agent(policy=policy, run_id=args.run_id, value_function=value_function, critic=args.critic, device=args.device, model_name=args.model_name, check_freq=args.check_freq, skip_over=args.skip_over)
+    agent = Agent(policy=policy, run_id=args.run_id, value_function=value_function, critic=args.critic, device=args.device, model_name=args.model_name, check_freq=args.check_freq, skip_over=args.skip_over, scalar_baseline=args.baseline)
 
     #
     # TASK 2 and 3: interleave data collection to policy updates
